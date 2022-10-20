@@ -104,8 +104,8 @@ def get_test_loader(data_dir,
 class GazeDataset(Dataset):
     def __init__(self, dataset_path: str, keys_to_use: List[str] = None, sub_folder='', transform=None, is_shuffle=True,
                  index_file=None, is_load_label=True, get_second_sample = True, subject = None, num_val_images=100, key_data=''):
-        self.path = dataset_path,
-        self.key_data=key_data,
+        self.path = dataset_path
+        self.key_data=key_data
         self.hdfs = {}
         self.sub_folder = sub_folder
         self.is_load_label = is_load_label
@@ -123,7 +123,6 @@ class GazeDataset(Dataset):
         assert len(self.selected_keys) > 0
 
         for num_i in range(0, len(self.selected_keys)):
-            print(num_i)
             file_path = os.path.join(self.path,"xgaze_" + self.selected_keys[num_i])
             self.hdfs[num_i] = h5py.File(file_path, 'r', swmr=True)
             # print('read file: ', os.path.join(self.path, self.selected_keys[num_i]))
