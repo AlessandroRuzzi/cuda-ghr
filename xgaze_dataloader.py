@@ -123,6 +123,7 @@ class GazeDataset(Dataset):
         assert len(self.selected_keys) > 0
 
         for num_i in range(0, len(self.selected_keys)):
+            print(num_i)
             file_path = os.path.join(self.path,"xgaze_" + self.selected_keys[num_i])
             self.hdfs[num_i] = h5py.File(file_path, 'r', swmr=True)
             # print('read file: ', os.path.join(self.path, self.selected_keys[num_i]))
