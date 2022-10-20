@@ -676,9 +676,9 @@ if config.train_mode:
                 tensorboard.add_scalar('train/lr', lr, current_step)
 
         # Testing loop: every specified iterations compute the test statistics
-        if current_step % config.print_freq_test == 0:
+        if current_step % config.print_freq_test == 0 and current_step != config.load_step:
             network.eval()
-            network.clean_up()
+            #network.clean_up()
             torch.cuda.empty_cache()
             execute_test(1, current_step)
             # This might help with memory leaks
