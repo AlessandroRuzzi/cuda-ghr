@@ -51,7 +51,7 @@ class Controller(nn.Module):
         for param in self.task_net.parameters():
             param.requires_grad = False
 
-        self.task_net = torch.nn.DataParallel(self.task_net)
+        #self.task_net = torch.nn.DataParallel(self.task_net)
         self.task_net.load_state_dict(torch.load(config.gazenet_savepath)["model_state"])
         self.task_net.eval()
 
