@@ -18,6 +18,7 @@ import warnings
 import random
 from torchvision import transforms
 import wandb
+from PIL import Image
 from xgaze_dataloader import get_train_loader
 from xgaze_dataloader import get_val_loader as xgaze_get_val_loader
 from standard_image_dataset import get_data_loader as image_get_data_loader
@@ -293,6 +294,15 @@ def execute_training_step(current_step):
     gen_optimizer.zero_grad()
     loss.backward()
     gen_optimizer.step()
+
+
+    if current_step % 50 == 0:
+        img = np.concatenate([((input_dict['source_image'].detach().cpu().permute(0, 2, 3, 1).numpy() +1) * 255.0/2.0).astype(np.uint8),((input_dict['target_image'].detach().cpu().permute(0, 2, 3, 1).numpy() +1) * 255.0/2.0).astype(np.uint8),np.clip(((target_gen_image.detach().cpu().permute(0, 2, 3, 1).numpy()  +1) * 255.0/2.0),0,255).astype(np.uint8)],axis=2)
+        #img = np.concatenate([(input['image_a'].detach().cpu().permute(0, 2, 3, 1).numpy()* 255.0).astype(np.uint8),(input['image_b'].detach().cpu().permute(0, 2, 3, 1).numpy() * 255.0).astype(np.uint8),(generated.detach().cpu().permute(0, 2, 3, 1).numpy() * 255.0).astype(np.uint8)],axis=2)
+        img = Image.fromarray(img[0])
+        log_image = wandb.Image(img)
+        #log_image.show()
+        wandb.log({"Sted Prediction": log_image})
 
     # save training samples in tensorboard
     if config.use_tensorboard and current_step % config.save_freq_images == 0 and current_step != 0:
