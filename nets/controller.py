@@ -1,5 +1,7 @@
+import imp
 import torch.nn as nn
-from nets import Encoder, HologanGenerator, Discriminator, MLPNetwork, GazeHeadResNet
+from nets import Encoder, HologanGenerator, Discriminator, MLPNetwork
+from nets.task_network import GazeHeadNet
 import torch
 import os
 from utils import get_act, get_norm
@@ -43,14 +45,14 @@ class Controller(nn.Module):
                                           non_linear_last=None).to(device)
 
         # Task network T
-        self.task_net = GazeHeadResNet(norm_layer='instance').to(device)
+        self.task_net = GazeHeadNet().to(device)
 
         # task network is fixed
         for param in self.task_net.parameters():
             param.requires_grad = False
 
         self.task_net = torch.nn.DataParallel(self.task_net)
-        self.task_net.load_state_dict(torch.load(config.gazenet_savepath))
+        self.task_net.load_state_dict(torch.load(config.gazenet_savepath)["model_state"])
         self.task_net.eval()
 
     def push_modules_to_multi_gpu(self):
