@@ -93,8 +93,8 @@ config.lr = config.batch_size*config.base_learning_rate
 
 #####################################################
 # load datasets
-source_train_dataset, source_train_dataloader = get_train_loader(data_dir = "/data/data2/aruzzi/xgaze_subjects",batch_size=int(config.batch_size), key_data='source')
-target_train_dataset, target_train_dataloader = get_train_loader(data_dir = "/data/data2/aruzzi/xgaze_subjects",batch_size=int(config.batch_size), key_data= 'target')
+source_train_dataset, source_train_dataloader = get_train_loader(data_dir = "/data/aruzzi/xgaze_subjects",batch_size=int(config.batch_size), key_data='source')
+target_train_dataset, target_train_dataloader = get_train_loader(data_dir = "/data/aruzzi/xgaze_subjects",batch_size=int(config.batch_size), key_data= 'target')
 
 # logging data stats.
 logging.info('')
