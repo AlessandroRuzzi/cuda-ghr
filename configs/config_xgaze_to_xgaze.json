@@ -23,14 +23,14 @@
 
     "l2_reg": 0.0001,
     "base_learning_rate": 0.00005,
-    "decay_steps": 150000,
+    "decay_steps": 34480,
     "decay": 0.8,
 
     "load_step": 0,
 
-    "input_img_w": 512,
-    "input_img_h": 512,
-    "z_dim_app": 64,
+    "input_img_w": 128,
+    "input_img_h": 128,
+    "z_dim_app": 16,
     "z_dim_gaze": 8,
     "z_dim_head": 16,
     "encoder_norm": "instance",

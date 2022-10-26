@@ -60,6 +60,10 @@ trans_resize = transforms.Compose(
     ]
 )
 
+mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+        
+
 torch.manual_seed(45)  # cpu
 torch.cuda.manual_seed(55)  # gpu
 np.random.seed(65)  # numpy
@@ -189,7 +193,7 @@ def execute_training_step(current_step):
     disc_loss_D = losses.discriminator_loss(real=real, fake=fake)
 
     ## target data
-    gaze_pred_, head_pred_ = network.task_net(input_dict['target_image'])
+    gaze_pred_, head_pred_ = network.task_net((input_dict['target_image']-mean)/std)
     t_app_embedding = network.image_encoder(input_dict['target_image'])
     t_gaze_embedding = network.gaze_latent_encoder(gaze_pred_)
     target_embedding = torch.cat((t_app_embedding, t_gaze_embedding), dim=-1)
@@ -231,7 +235,7 @@ def execute_training_step(current_step):
     source_gen_image = network.generator([source_emdedding, F.pad(input=input_dict['source_head'], pad=(0, 1),
                                                                   mode='constant', value=0)])[0]
     # target data
-    gaze_pred_orig_t, head_pred_orig_t = network.task_net(input_dict['target_image'])
+    gaze_pred_orig_t, head_pred_orig_t = network.task_net((input_dict['target_image']-mean)/std)
     t_app_embedding = network.image_encoder(input_dict['target_image'])
     t_gaze_embedding = network.gaze_latent_encoder(gaze_pred_orig_t)
     target_embedding = torch.cat((t_app_embedding, t_gaze_embedding), dim=-1)
@@ -262,12 +266,12 @@ def execute_training_step(current_step):
     disc_loss_G += (latent_disc_loss(fake, fake_label) + latent_disc_loss(real, real_label)) / 2
 
     ## label consistency loss
-    gaze_pred_orig_s, head_pred_orig_s = network.task_net(input_dict['source_image'])
-    gaze_pred, head_pred = network.task_net(source_gen_image)
+    gaze_pred_orig_s, head_pred_orig_s = network.task_net((input_dict['source_image']-mean)/std)
+    gaze_pred, head_pred = network.task_net((source_gen_image-mean)/std)
     task_loss = losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_pred)
     task_loss += losses.gaze_angular_loss(y=head_pred_orig_s, y_hat=head_pred)
 
-    gaze_pred, head_pred = network.task_net(target_gen_image)
+    gaze_pred, head_pred = network.task_net((target_gen_image-mean)/std)
     task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=gaze_pred)
     task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=head_pred)
 
@@ -279,8 +283,8 @@ def execute_training_step(current_step):
                                             F.pad(input=input_dict['source_head'], pad=(0, 1),
                                                   mode='constant', value=0)])[0]
 
-    gaze_swapped_gaze_pred, gaze_swapped_head_pred = network.task_net(gaze_swapped_image)
-    head_swapped_gaze_pred, head_swapped_head_pred = network.task_net(head_swapped_image)
+    gaze_swapped_gaze_pred, gaze_swapped_head_pred = network.task_net((gaze_swapped_image-mean)/std)
+    head_swapped_gaze_pred, head_swapped_head_pred = network.task_net((head_swapped_image-mean)/std)
     task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_swapped_gaze_pred)
     task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=gaze_swapped_head_pred)
     task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=head_swapped_gaze_pred)
@@ -690,6 +694,11 @@ if config.train_mode:
         if current_step != 0 and (current_step % config.print_freq_train == 0):
             logging.info('Losses at [%7d]: %s %s %s %s %s' %
                          (current_step, tr_loss[0], tr_loss[1], tr_loss[2], tr_loss[3], tr_loss[4]))
+            wandb.log({'train/l1_loss': tr_loss[0]})
+            wandb.log({'train/discD': tr_loss[1]})
+            wandb.log({'train/discG': tr_loss[2]})
+            wandb.log({'train/perc_loss': tr_loss[3]})
+            wandb.log({'train/task_loss': tr_loss[4]})
             if config.use_tensorboard:
                 tensorboard.add_scalar('train/l1_loss', tr_loss[0], current_step)
                 tensorboard.add_scalar('train/discD', tr_loss[1], current_step)
