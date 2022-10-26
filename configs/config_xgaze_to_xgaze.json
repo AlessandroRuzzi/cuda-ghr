@@ -28,8 +28,8 @@
 
     "load_step": 0,
 
-    "input_img_w": 256,
-    "input_img_h": 256,
+    "input_img_w": 512,
+    "input_img_h": 512,
     "z_dim_app": 16,
     "z_dim_gaze": 8,
     "z_dim_head": 16,
