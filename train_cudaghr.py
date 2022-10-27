@@ -420,7 +420,7 @@ def execute_test(log, current_step):
 
     for idx,name in enumerate(config.data_names):
         for subject in val_keys[name]:
-            dataloader_all.append(select_dataloader(name, subject, idx, config.img_dir[idx], 1, config.num_images, 0, is_shuffle=False))   
+            dataloader_all.append(select_dataloader(name, subject, idx, config.img_dir[idx], 1, config.num_images[idx], 0, is_shuffle=False))   
 
     cam_matrix, cam_distortion, cam_translation, cam_rotation = load_cams()
 
