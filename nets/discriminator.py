@@ -6,7 +6,7 @@ class Discriminator(nn.Module):
     def __init__(self, input_nc=3, ndf=256):
         super(Discriminator, self).__init__()
         use_bias = False
-        kw = 4
+        kw = 8
         padw = 1
         self.conv1 = nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw)
 
