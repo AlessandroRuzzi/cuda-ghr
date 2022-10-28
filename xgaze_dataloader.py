@@ -142,11 +142,11 @@ class GazeDataset(Dataset):
                     
                     self.idx_to_kv += [
                         #(num_i, i) for i in range(43*18)
-                        (num_i, i) for i in range(1)
+                        (num_i, i) for i in range(2)
                     ]  
-                    self.idx_to_kv += [
-                        (num_i, i) for i in range(self.hdfs[num_i]["face_patch"].shape[0]-1, self.hdfs[num_i]["face_patch"].shape[0] - 1 - 0*18, -1)
-                    ] 
+                    #self.idx_to_kv += [
+                    #    (num_i, i) for i in range(self.hdfs[num_i]["face_patch"].shape[0]-1, self.hdfs[num_i]["face_patch"].shape[0] - 1 - 0*18, -1)
+                    #] 
                 
         else:
             print('load the file: ', index_file)
