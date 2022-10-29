@@ -3,10 +3,10 @@ from torch import nn
 
 
 class Discriminator(nn.Module):
-    def __init__(self, input_nc=3, ndf=256):
+    def __init__(self, input_nc=3, ndf=64):
         super(Discriminator, self).__init__()
         use_bias = False
-        kw = 8
+        kw = 4
         padw = 1
         self.conv1 = nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw)
 
