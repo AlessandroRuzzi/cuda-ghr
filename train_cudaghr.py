@@ -135,7 +135,7 @@ disc_params = list(network.target_discrim.parameters()) + \
               list(network.source_discrim.parameters()) + \
               list(network.latent_discriminator.parameters())
 
-disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 0.01, weight_decay=config.l2_reg)
+disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 1.0, weight_decay=config.l2_reg)
 
 optimizers = [gen_optimizer, disc_optimizer]
 
@@ -215,7 +215,7 @@ def execute_training_step(current_step):
 
     ############### GENERATOR ############
 
-    for i in range(5):
+    for i in range(2):
 
         for param in network.target_discrim.parameters():
             param.requires_grad = False
