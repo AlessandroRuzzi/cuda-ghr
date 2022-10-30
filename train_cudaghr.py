@@ -135,7 +135,7 @@ disc_params = list(network.target_discrim.parameters()) + \
               list(network.source_discrim.parameters()) + \
               list(network.latent_discriminator.parameters())
 
-disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 0.01, weight_decay=config.l2_reg)
+disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 0.001, weight_decay=config.l2_reg)
 
 optimizers = [gen_optimizer, disc_optimizer]
 
