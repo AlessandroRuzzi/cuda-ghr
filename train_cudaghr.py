@@ -135,7 +135,7 @@ disc_params = list(network.target_discrim.parameters()) + \
               list(network.source_discrim.parameters()) + \
               list(network.latent_discriminator.parameters())
 
-disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 0.0001, weight_decay=config.l2_reg)
+disc_optimizer = torch.optim.Adam(disc_params, lr=config.lr * 0.01, weight_decay=config.l2_reg)
 
 optimizers = [gen_optimizer, disc_optimizer]
 
@@ -215,89 +215,91 @@ def execute_training_step(current_step):
 
     ############### GENERATOR ############
 
-    for param in network.target_discrim.parameters():
-        param.requires_grad = False
-    for param in network.source_discrim.parameters():
-        param.requires_grad = False
-    for param in network.latent_discriminator.parameters():
-        param.requires_grad = False
-    for param in network.image_encoder.parameters():
-        param.requires_grad = True
-    for param in network.generator.parameters():
-        param.requires_grad = True
-    for param in network.gaze_latent_encoder.parameters():
-        param.requires_grad = True
+    for i in range(5):
 
-    # source data
-    s_app_embedding = network.image_encoder(input_dict['source_image'])
-    s_gaze_embedding = network.gaze_latent_encoder(input_dict['source_gaze'])
-    source_emdedding = torch.cat((s_app_embedding, s_gaze_embedding), dim=-1)
-    source_gen_image = network.generator([source_emdedding, F.pad(input=input_dict['source_head'], pad=(0, 1),
-                                                                  mode='constant', value=0)])[0]
-    # target data
-    gaze_pred_orig_t, head_pred_orig_t = network.task_net((input_dict['target_image']-mean)/std)
-    t_app_embedding = network.image_encoder(input_dict['target_image'])
-    t_gaze_embedding = network.gaze_latent_encoder(gaze_pred_orig_t)
-    target_embedding = torch.cat((t_app_embedding, t_gaze_embedding), dim=-1)
-    target_gen_image = network.generator([target_embedding, F.pad(input=head_pred_orig_t, pad=(0, 1),
-                                                           mode='constant', value=0)])[0]
+        for param in network.target_discrim.parameters():
+            param.requires_grad = False
+        for param in network.source_discrim.parameters():
+            param.requires_grad = False
+        for param in network.latent_discriminator.parameters():
+            param.requires_grad = False
+        for param in network.image_encoder.parameters():
+            param.requires_grad = True
+        for param in network.generator.parameters():
+            param.requires_grad = True
+        for param in network.gaze_latent_encoder.parameters():
+            param.requires_grad = True
 
-    ## reconstruction loss and perceptual loss
-    rloss = torch.nn.L1Loss()(source_gen_image, input_dict['source_image']) + \
-            torch.nn.L1Loss()(target_gen_image, input_dict['target_image'])
+        # source data
+        s_app_embedding = network.image_encoder(input_dict['source_image'])
+        s_gaze_embedding = network.gaze_latent_encoder(input_dict['source_gaze'])
+        source_emdedding = torch.cat((s_app_embedding, s_gaze_embedding), dim=-1)
+        source_gen_image = network.generator([source_emdedding, F.pad(input=input_dict['source_head'], pad=(0, 1),
+                                                                    mode='constant', value=0)])[0]
+        # target data
+        gaze_pred_orig_t, head_pred_orig_t = network.task_net((input_dict['target_image']-mean)/std)
+        t_app_embedding = network.image_encoder(input_dict['target_image'])
+        t_gaze_embedding = network.gaze_latent_encoder(gaze_pred_orig_t)
+        target_embedding = torch.cat((t_app_embedding, t_gaze_embedding), dim=-1)
+        target_gen_image = network.generator([target_embedding, F.pad(input=head_pred_orig_t, pad=(0, 1),
+                                                            mode='constant', value=0)])[0]
 
-    percep_loss = perceptual_loss.loss(source_gen_image, input_dict['source_image']) \
-                  + perceptual_loss.loss(target_gen_image, input_dict['target_image'])
+        ## reconstruction loss and perceptual loss
+        rloss = torch.nn.L1Loss()(source_gen_image, input_dict['source_image']) + \
+                torch.nn.L1Loss()(target_gen_image, input_dict['target_image'])
 
-    ## GAN loss
-    fake = network.source_discrim(source_gen_image)
-    disc_loss_G = losses.generator_loss(fake=fake)
+        percep_loss = perceptual_loss.loss(source_gen_image, input_dict['source_image']) \
+                    + perceptual_loss.loss(target_gen_image, input_dict['target_image'])
 
-    fake = network.target_discrim(target_gen_image)
-    disc_loss_G += losses.generator_loss(fake=fake)
+        ## GAN loss
+        fake = network.source_discrim(source_gen_image)
+        disc_loss_G = losses.generator_loss(fake=fake)
 
-    # L_feat
-    fake = network.latent_discriminator(target_embedding)
-    real = network.latent_discriminator(source_emdedding)
-    real_size = list(real.size())
-    fake_size = list(fake.size())
-    real_label = torch.zeros(real_size, dtype=torch.float32).to(device)
-    fake_label = torch.ones(fake_size, dtype=torch.float32).to(device)
-    disc_loss_G += (latent_disc_loss(fake, fake_label) + latent_disc_loss(real, real_label)) / 2
+        fake = network.target_discrim(target_gen_image)
+        disc_loss_G += losses.generator_loss(fake=fake)
 
-    ## label consistency loss
-    gaze_pred_orig_s, head_pred_orig_s = network.task_net((input_dict['source_image']-mean)/std)
-    gaze_pred, head_pred = network.task_net((source_gen_image-mean)/std)
-    task_loss = losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_pred)
-    task_loss += losses.gaze_angular_loss(y=head_pred_orig_s, y_hat=head_pred)
+        # L_feat
+        fake = network.latent_discriminator(target_embedding)
+        real = network.latent_discriminator(source_emdedding)
+        real_size = list(real.size())
+        fake_size = list(fake.size())
+        real_label = torch.zeros(real_size, dtype=torch.float32).to(device)
+        fake_label = torch.ones(fake_size, dtype=torch.float32).to(device)
+        disc_loss_G += (latent_disc_loss(fake, fake_label) + latent_disc_loss(real, real_label)) / 2
 
-    gaze_pred, head_pred = network.task_net((target_gen_image-mean)/std)
-    task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=gaze_pred)
-    task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=head_pred)
+        ## label consistency loss
+        gaze_pred_orig_s, head_pred_orig_s = network.task_net((input_dict['source_image']-mean)/std)
+        gaze_pred, head_pred = network.task_net((source_gen_image-mean)/std)
+        task_loss = losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_pred)
+        task_loss += losses.gaze_angular_loss(y=head_pred_orig_s, y_hat=head_pred)
 
-    ## redirected consistency loss
-    gaze_swapped_image = network.generator([torch.cat((t_app_embedding, s_gaze_embedding), dim=-1),
-                                            F.pad(input=head_pred_orig_t, pad=(0, 1),
-                                                  mode='constant', value=0)])[0]
-    head_swapped_image = network.generator([torch.cat((t_app_embedding, t_gaze_embedding), dim=-1),
-                                            F.pad(input=input_dict['source_head'], pad=(0, 1),
-                                                  mode='constant', value=0)])[0]
+        gaze_pred, head_pred = network.task_net((target_gen_image-mean)/std)
+        task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=gaze_pred)
+        task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=head_pred)
 
-    gaze_swapped_gaze_pred, gaze_swapped_head_pred = network.task_net((gaze_swapped_image-mean)/std)
-    head_swapped_gaze_pred, head_swapped_head_pred = network.task_net((head_swapped_image-mean)/std)
-    task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_swapped_gaze_pred)
-    task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=gaze_swapped_head_pred)
-    task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=head_swapped_gaze_pred)
-    task_loss += losses.gaze_angular_loss(y=head_pred_orig_s, y_hat=head_swapped_head_pred)
+        ## redirected consistency loss
+        gaze_swapped_image = network.generator([torch.cat((t_app_embedding, s_gaze_embedding), dim=-1),
+                                                F.pad(input=head_pred_orig_t, pad=(0, 1),
+                                                    mode='constant', value=0)])[0]
+        head_swapped_image = network.generator([torch.cat((t_app_embedding, t_gaze_embedding), dim=-1),
+                                                F.pad(input=input_dict['source_head'], pad=(0, 1),
+                                                    mode='constant', value=0)])[0]
 
-    loss = config.coeff_l1_loss*rloss + \
-           config.coeff_latent_discriminator_loss*disc_loss_G + \
-           config.coeff_perc_loss*percep_loss + \
-           config.coeff_gaze_loss*task_loss
+        gaze_swapped_gaze_pred, gaze_swapped_head_pred = network.task_net((gaze_swapped_image-mean)/std)
+        head_swapped_gaze_pred, head_swapped_head_pred = network.task_net((head_swapped_image-mean)/std)
+        task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_s, y_hat=gaze_swapped_gaze_pred)
+        task_loss += losses.gaze_angular_loss(y=head_pred_orig_t, y_hat=gaze_swapped_head_pred)
+        task_loss += losses.gaze_angular_loss(y=gaze_pred_orig_t, y_hat=head_swapped_gaze_pred)
+        task_loss += losses.gaze_angular_loss(y=head_pred_orig_s, y_hat=head_swapped_head_pred)
 
-    gen_optimizer.zero_grad()
-    loss.backward()
-    gen_optimizer.step()
+        loss = config.coeff_l1_loss*rloss + \
+            config.coeff_latent_discriminator_loss*disc_loss_G + \
+            config.coeff_perc_loss*percep_loss + \
+            config.coeff_gaze_loss*task_loss
+
+        gen_optimizer.zero_grad()
+        loss.backward()
+        gen_optimizer.step()
 
 
     if current_step % 50 == 0:
